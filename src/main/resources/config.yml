@@ -1,0 +1,29 @@
+check-update: true # Enable automatic update checks for the plugin
+
+interval: 60 # Time interval (in seconds) between message broadcasts
+random: true # Randomize message selection from the list
+sound-enabled: true # Enable sound playback after message is sent
+
+sound: BLOCK_NOTE_BLOCK_PLING # Minecraft sound resource for message notification
+volume: 1.0 # Sound volume level (0.0 to 1.0)
+pitch: 1.0 # Sound pitch level (0.5 to 2.0)
+
+messages:
+  toggle-on: "Notifications are enabled!"
+  toggle-off: "Notifications are turned off!"
+  no-permission: "You do not have permission for this command!"
+  reload: "Config has been reloaded!"
+  player-only: "This command is for players only!"
+
+  example:
+    - ""
+    - " &#4ef89b[&lLirBroadcast&#4ef89b] &7(/notification)"
+    - ""
+    - " Download the plugin - "
+    - " &#4ef89bhttps://modrinth.com/plugin/lirbroadcast"
+    - ""
+  example2:
+    - ""
+    - " &#4ef89b● Plugin &#4ef89bsupports&f any hex colors! &#4ef89bAnd also placeholders."
+    - " &#4ef89b- &fYour name: &#4ef89b%player_name%"
+    - ""
