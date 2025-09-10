@@ -4,15 +4,15 @@ import lirdev.lirbroadcast.LirBroadcast;
 import lirdev.lirbroadcast.utils.ColorParser;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class NotificationManager {
     private final LirBroadcast plugin;
@@ -27,7 +27,7 @@ public class NotificationManager {
     public NotificationManager(LirBroadcast plugin, ConfigManager configManager) {
         this.plugin = plugin;
         this.configManager = configManager;
-        this.disabledPlayersFile = new File(plugin.getDataFolder(), "disabled_players.yml");
+        this.disabledPlayersFile = new File(plugin.getDataFolder(), "disabled_players.json");
         this.messageCache = Collections.synchronizedList(new ArrayList<>());
 
         try {
@@ -46,26 +46,43 @@ public class NotificationManager {
 
     private void loadDisabledPlayers() throws IOException {
         if (!disabledPlayersFile.exists()) {
-            if (!disabledPlayersFile.createNewFile()) {}
+            if (!disabledPlayersFile.createNewFile()) {
+                saveDisabledPlayers();
+            }
             return;
         }
 
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(disabledPlayersFile);
-        for (String uuidString : config.getKeys(false)) {
-            try {
-                if (config.getBoolean(uuidString)) {
-                    disabledPlayers.add(UUID.fromString(uuidString));
+        try (FileReader reader = new FileReader(disabledPlayersFile)) {
+            StringBuilder content = new StringBuilder();
+            int character;
+            while ((character = reader.read()) != -1) {
+                content.append((char) character);
+            }
+
+            if (content.length() > 0) {
+                JSONObject json = new JSONObject(content.toString());
+                JSONArray uuids = json.getJSONArray("disabled_players");
+
+                for (int i = 0; i < uuids.length(); i++) {
+                    try {
+                        disabledPlayers.add(UUID.fromString(uuids.getString(i)));
+                    } catch (IllegalArgumentException e) {}
                 }
-            } catch (IllegalArgumentException e) {}
-        }
+            }
+        } catch (Exception e) {}
     }
 
     private void saveDisabledPlayers() {
-        try {
-            YamlConfiguration config = new YamlConfiguration();
-            disabledPlayers.forEach(uuid -> config.set(uuid.toString(), true));
+        try (FileWriter writer = new FileWriter(disabledPlayersFile)) {
+            JSONObject json = new JSONObject();
+            JSONArray uuids = new JSONArray();
 
-            config.save(disabledPlayersFile);
+            for (UUID uuid : disabledPlayers) {
+                uuids.put(uuid.toString());
+            }
+
+            json.put("disabled_players", uuids);
+            writer.write(json.toString(2));
         } catch (IOException e) {}
     }
 
@@ -117,6 +134,7 @@ public class NotificationManager {
             }
         }
     }
+
     private List<String> getNextMessage() {
         if (messageCache.isEmpty()) {
             return Collections.emptyList();
