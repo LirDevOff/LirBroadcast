@@ -70,7 +70,7 @@ public class UpdateChecker implements Listener {
                 }
             }
         } catch (Exception e) {
-            log.warning(ColorParser.colorize("&#FF5555Update check failed: " + e.getMessage()));
+            lirdev.lirbroadcast.utils.Logger.error("&#FF5555Update check failed: " + e.getMessage());
         }
     }
 

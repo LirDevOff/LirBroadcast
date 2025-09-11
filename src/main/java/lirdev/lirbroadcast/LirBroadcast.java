@@ -19,7 +19,9 @@ public final class LirBroadcast extends JavaPlugin {
 
         Commands command = new Commands(notificationManager, configManager);
         getCommand("notification").setExecutor(command);
+
         getCommand("lirbroadcast").setExecutor(command);
+        getCommand("lirbroadcast").setTabCompleter(command);
 
         if (configManager.isCheckupdate()) {
             new UpdateChecker(this, getDescription().getVersion(), "lirbroadcast", configManager);

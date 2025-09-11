@@ -26,4 +26,5 @@ messages:
     - ""
     - " &#4ef89b● Plugin &#4ef89bsupports&f any hex colors! &#4ef89bAnd also placeholders."
     - " &#4ef89b- &fYour name: &#4ef89b%player_name%"
+    - " &#4ef89b- &fServer online: &#4ef89b%server_online%"
     - ""

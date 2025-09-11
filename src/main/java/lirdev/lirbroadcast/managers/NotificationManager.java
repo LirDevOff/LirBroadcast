@@ -2,6 +2,9 @@ package lirdev.lirbroadcast.managers;
 
 import lirdev.lirbroadcast.LirBroadcast;
 import lirdev.lirbroadcast.utils.ColorParser;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -9,10 +12,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.*;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 public class NotificationManager {
     private final LirBroadcast plugin;
@@ -23,12 +25,14 @@ public class NotificationManager {
     private volatile List<List<String>> messageCache;
     private volatile int currentMessageIndex = 0;
     private final File disabledPlayersFile;
+    private final Gson gson;
 
     public NotificationManager(LirBroadcast plugin, ConfigManager configManager) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.disabledPlayersFile = new File(plugin.getDataFolder(), "disabled_players.json");
         this.messageCache = Collections.synchronizedList(new ArrayList<>());
+        this.gson = new GsonBuilder().setPrettyPrinting().create();
 
         try {
             initialize();
@@ -44,46 +48,42 @@ public class NotificationManager {
         startAutoSaveTask();
     }
 
-    private void loadDisabledPlayers() throws IOException {
-        if (!disabledPlayersFile.exists()) {
-            if (!disabledPlayersFile.createNewFile()) {
+    private void loadDisabledPlayers() {
+        try {
+            if (!disabledPlayersFile.exists()) {
                 saveDisabledPlayers();
-            }
-            return;
-        }
-
-        try (FileReader reader = new FileReader(disabledPlayersFile)) {
-            StringBuilder content = new StringBuilder();
-            int character;
-            while ((character = reader.read()) != -1) {
-                content.append((char) character);
+                return;
             }
 
-            if (content.length() > 0) {
-                JSONObject json = new JSONObject(content.toString());
-                JSONArray uuids = json.getJSONArray("disabled_players");
+            try (FileReader reader = new FileReader(disabledPlayersFile)) {
+                Type type = new TypeToken<Set<String>>(){}.getType();
+                Set<String> uuidStrings = gson.fromJson(reader, type);
 
-                for (int i = 0; i < uuids.length(); i++) {
-                    try {
-                        disabledPlayers.add(UUID.fromString(uuids.getString(i)));
-                    } catch (IllegalArgumentException e) {}
+                if (uuidStrings != null) {
+                    for (String uuidString : uuidStrings) {
+                        try {
+                            disabledPlayers.add(UUID.fromString(uuidString));
+                        } catch (IllegalArgumentException e) {}
+                    }
                 }
             }
         } catch (Exception e) {}
     }
 
     private void saveDisabledPlayers() {
-        try (FileWriter writer = new FileWriter(disabledPlayersFile)) {
-            JSONObject json = new JSONObject();
-            JSONArray uuids = new JSONArray();
-
-            for (UUID uuid : disabledPlayers) {
-                uuids.put(uuid.toString());
+        try {
+            if (!disabledPlayersFile.getParentFile().exists()) {
+                disabledPlayersFile.getParentFile().mkdirs();
             }
 
-            json.put("disabled_players", uuids);
-            writer.write(json.toString(2));
-        } catch (IOException e) {}
+            try (FileWriter writer = new FileWriter(disabledPlayersFile)) {
+                Set<String> uuidStrings = new HashSet<>();
+                for (UUID uuid : disabledPlayers) {
+                    uuidStrings.add(uuid.toString());
+                }
+                gson.toJson(uuidStrings, writer);
+            }
+        } catch (Exception e) {}
     }
 
     private void startAutoSaveTask() {
@@ -120,11 +120,9 @@ public class NotificationManager {
         float volume = configManager.getVolume();
         float pitch = configManager.getPitch();
 
-        int playersNotified = 0;
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (disabledPlayers.contains(player.getUniqueId())) continue;
 
-            playersNotified++;
             for (String line : messageLines) {
                 player.sendMessage(ColorParser.fullFormat(line, player));
             }

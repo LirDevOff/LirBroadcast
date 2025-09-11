@@ -9,4 +9,5 @@ loadbefore:
   - PlaceholderAPI
 commands:
   lirbroadcast:
+    permission: lirbroadcast.admin
   notification:
