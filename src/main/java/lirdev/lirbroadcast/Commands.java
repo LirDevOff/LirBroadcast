@@ -24,11 +24,14 @@ public class Commands implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        if (cmd.getName().equalsIgnoreCase("lirbroadcast") && !sender.hasPermission("lirbroadcast.admin")) {
-            return true;
-        }
-
         if (cmd.getName().equalsIgnoreCase("lirbroadcast")) {
+            if (!sender.hasPermission("lirbroadcast.admin")) {
+                sender.sendMessage(ColorParser.fullFormat(
+                        configManager.getNoPermissionMsg(),
+                        sender instanceof Player ? (Player) sender : null
+                ));
+                return true;
+            }
             return handleAdminCommand(sender, args);
         }
 
@@ -37,11 +40,11 @@ public class Commands implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
-        if (cmd.getName().equalsIgnoreCase("lirbroadcast") && !sender.hasPermission("lirbroadcast.admin")) {
-            return new ArrayList<>();
-        }
-
         if (cmd.getName().equalsIgnoreCase("lirbroadcast")) {
+            if (!sender.hasPermission("lirbroadcast.admin")) {
+                return new ArrayList<>();
+            }
+
             List<String> completions = new ArrayList<>();
             if (args.length == 1) {
                 String input = args[0].toLowerCase();

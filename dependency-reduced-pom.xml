@@ -23,13 +23,38 @@
       </plugin>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.2.4</version>
+        <version>3.5.0</version>
         <executions>
           <execution>
             <phase>package</phase>
             <goals>
               <goal>shade</goal>
             </goals>
+            <configuration>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/**</exclude>
+                    <exclude>**/module-info.class</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <relocations>
+                <relocation>
+                  <pattern>net.kyori</pattern>
+                  <shadedPattern>lirdev.lirbroadcast.libs.net.kyori</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.intellij.lang</pattern>
+                  <shadedPattern>lirdev.lirbroadcast.libs.org.intellij.lang</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.jetbrains</pattern>
+                  <shadedPattern>lirdev.lirbroadcast.libs.org.jetbrains</shadedPattern>
+                </relocation>
+              </relocations>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -61,12 +86,6 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.spigotmc</groupId>
-      <artifactId>spigot-api</artifactId>
-      <version>1.16.5-R0.1-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>me.clip</groupId>
       <artifactId>placeholderapi</artifactId>
       <version>2.11.6</version>
@@ -75,6 +94,7 @@
   </dependencies>
   <properties>
     <java.version>1.8</java.version>
+    <adventure.version>4.17.0</adventure.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 </project>

@@ -16,6 +16,7 @@ public final class LirBroadcast extends JavaPlugin {
     public void onEnable() {
         this.configManager = new ConfigManager(this);
         this.notificationManager = new NotificationManager(this, configManager);
+        lirdev.lirbroadcast.utils.Logger.init(configManager);
 
         Commands command = new Commands(notificationManager, configManager);
         getCommand("notification").setExecutor(command);

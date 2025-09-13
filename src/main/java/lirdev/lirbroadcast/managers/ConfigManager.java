@@ -14,6 +14,7 @@ public class ConfigManager {
     private final Map<String, List<String>> messages = new LinkedHashMap<>();
     private int interval;
     private boolean random;
+    private boolean debug;
     private boolean checkupdate;
     private Sound sound;
     private float volume;
@@ -55,6 +56,7 @@ public class ConfigManager {
 
         interval = config.getInt("interval", 60);
         random = config.getBoolean("random", false);
+        debug = config.getBoolean("debug", false);
         soundEnabled = config.getBoolean("sound-enabled", true);
 
         try {
@@ -67,11 +69,11 @@ public class ConfigManager {
         volume = (float) config.getDouble("volume", 1.0);
         pitch = (float) config.getDouble("pitch", 1.0);
 
-        toggleOnMsg = config.getString("messages.toggle-on", "Notifications are enabled!");
-        toggleOffMsg = config.getString("messages.toggle-off", "Notifications are turned off!");
-        noPermissionMsg = config.getString("messages.no-permission", "You do not have permission for this command!");
-        reloadMsg = config.getString("messages.reload", "Config has been reloaded!");
-        playerOnlyMsg = config.getString("messages.player-only", "This command is for players only!");
+        toggleOnMsg = config.getString("messages.toggle-on", "Notifications have been enabled!");
+        toggleOffMsg = config.getString("messages.toggle-off", "Notifications have been disabled!");
+        noPermissionMsg = config.getString("messages.no-permission", "You do not have permission to use this command!");
+        reloadMsg = config.getString("messages.reload", "Configuration has been reloaded!");
+        playerOnlyMsg = config.getString("messages.player-only", "This command can only be used by players!");
     }
 
     public Map<String, List<String>> getMessages() { return messages; }
@@ -87,4 +89,5 @@ public class ConfigManager {
     public String getNoPermissionMsg() { return noPermissionMsg; }
     public String getReloadMsg() { return reloadMsg; }
     public String getPlayerOnlyMsg() { return playerOnlyMsg; }
+    public boolean isDebug() { return debug; }
 }

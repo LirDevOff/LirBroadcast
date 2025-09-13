@@ -2,6 +2,7 @@ package lirdev.lirbroadcast.managers;
 
 import lirdev.lirbroadcast.LirBroadcast;
 import lirdev.lirbroadcast.utils.ColorParser;
+import lirdev.lirbroadcast.utils.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -19,11 +20,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NotificationManager {
     private final LirBroadcast plugin;
     private final ConfigManager configManager;
+
     private final Set<UUID> disabledPlayers = ConcurrentHashMap.newKeySet();
     private volatile BukkitTask notificationTask;
     private final Random random = new Random();
-    private volatile List<List<String>> messageCache;
-    private volatile int currentMessageIndex = 0;
+    private List<List<String>> messageCache;
+
+    private int currentMessageIndex = 0;
+
     private final File disabledPlayersFile;
     private final Gson gson;
 
@@ -31,18 +35,20 @@ public class NotificationManager {
         this.plugin = plugin;
         this.configManager = configManager;
         this.disabledPlayersFile = new File(plugin.getDataFolder(), "disabled_players.json");
-        this.messageCache = Collections.synchronizedList(new ArrayList<>());
+        this.messageCache = new ArrayList<>();
         this.gson = new GsonBuilder().setPrettyPrinting().create();
 
         try {
             initialize();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            Logger.debug("Failed to initialize NotificationManager: " + e.getMessage());
+        }
     }
 
     private void initialize() throws IOException {
         if (!plugin.getDataFolder().exists() && !plugin.getDataFolder().mkdirs()) {}
 
-        this.messageCache = new ArrayList<>(configManager.getMessages().values());
+        reloadMessageCache();
         loadDisabledPlayers();
         startStrictIntervalTask();
         startAutoSaveTask();
@@ -67,13 +73,17 @@ public class NotificationManager {
                     }
                 }
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            Logger.error("Failed to load disabled players: " + e.getMessage());
+        }
     }
 
     private void saveDisabledPlayers() {
         try {
             if (!disabledPlayersFile.getParentFile().exists()) {
-                disabledPlayersFile.getParentFile().mkdirs();
+                if (!disabledPlayersFile.getParentFile().mkdirs()) {
+                    return;
+                }
             }
 
             try (FileWriter writer = new FileWriter(disabledPlayersFile)) {
@@ -87,7 +97,7 @@ public class NotificationManager {
     }
 
     private void startAutoSaveTask() {
-        Bukkit.getScheduler().runTaskTimer(plugin, this::saveDisabledPlayers, 6000L, 6000L);
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::saveDisabledPlayers, 6000L, 6000L);
     }
 
     private void startStrictIntervalTask() {
@@ -108,23 +118,33 @@ public class NotificationManager {
         if (messageCache.isEmpty()) {
             reloadMessageCache();
             if (messageCache.isEmpty()) {
+                Logger.warn("No messages available for broadcast");
                 return;
             }
         }
 
         List<String> messageLines = getNextMessage();
-        if (messageLines.isEmpty()) return;
+        if (messageLines.isEmpty()) {
+            return;
+        }
 
         boolean soundEnabled = configManager.isSoundEnabled();
         Sound sound = configManager.getSound();
         float volume = configManager.getVolume();
         float pitch = configManager.getPitch();
 
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        String[] formattedMessages = new String[messageLines.size()];
+        for (int i = 0; i < messageLines.size(); i++) {
+            formattedMessages[i] = ColorParser.fullFormat(messageLines.get(i), null);
+        }
+
+        Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
+
+        for (Player player : onlinePlayers) {
             if (disabledPlayers.contains(player.getUniqueId())) continue;
 
-            for (String line : messageLines) {
-                player.sendMessage(ColorParser.fullFormat(line, player));
+            for (String message : formattedMessages) {
+                player.sendMessage(message);
             }
 
             if (soundEnabled) {
@@ -133,7 +153,7 @@ public class NotificationManager {
         }
     }
 
-    private List<String> getNextMessage() {
+    private synchronized List<String> getNextMessage() {
         if (messageCache.isEmpty()) {
             return Collections.emptyList();
         }
@@ -147,9 +167,13 @@ public class NotificationManager {
         }
     }
 
-    private void reloadMessageCache() {
-        this.messageCache = new ArrayList<>(configManager.getMessages().values());
-        this.currentMessageIndex = 0;
+    private synchronized void reloadMessageCache() {
+        try {
+            Collection<List<String>> messages = configManager.getMessages().values();
+            messageCache = new ArrayList<>(messages);
+            currentMessageIndex = 0;
+            Logger.debug("Message cache reloaded. Loaded " + messages.size() + " messages");
+        } catch (Exception e) {}
     }
 
     public void reload() {
@@ -179,9 +203,5 @@ public class NotificationManager {
         saveDisabledPlayers();
         disabledPlayers.clear();
         messageCache.clear();
-    }
-
-    public boolean hasNotificationsDisabled(Player player) {
-        return disabledPlayers.contains(player.getUniqueId());
     }
 }
