@@ -1,6 +1,6 @@
 package lirdev.lirbroadcast;
 
-import lirdev.lirbroadcast.managers.ConfigManager;
+import lirdev.lirbroadcast.configuration.Config;
 import lirdev.lirbroadcast.managers.NotificationManager;
 import lirdev.lirbroadcast.utils.ColorParser;
 import org.bukkit.Sound;
@@ -15,23 +15,25 @@ import java.util.List;
 
 public class Commands implements CommandExecutor, TabCompleter {
     private final NotificationManager notificationManager;
-    private final ConfigManager configManager;
+    private final Config config;
 
-    public Commands(NotificationManager notificationManager, ConfigManager configManager) {
+    public Commands(NotificationManager notificationManager, Config config) {
         this.notificationManager = notificationManager;
-        this.configManager = configManager;
+        this.config = config;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (cmd.getName().equalsIgnoreCase("lirbroadcast")) {
-            if (!sender.hasPermission("lirbroadcast.admin")) {
-                sender.sendMessage(ColorParser.fullFormat(
-                        configManager.getNoPermissionMsg(),
-                        sender instanceof Player ? (Player) sender : null
-                ));
-                return true;
+            if (sender instanceof Player p) {
+                if (!sender.hasPermission("lirbroadcast.admin")) {
+                    sender.sendMessage(ColorParser.setPapi(
+                            config.getNoPermissionMsg(), p
+                            ));
+                    return true;
+                }
             }
+
             return handleAdminCommand(sender, args);
         }
 
@@ -61,10 +63,10 @@ public class Commands implements CommandExecutor, TabCompleter {
     private boolean handleAdminCommand(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
             if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
-                configManager.reloadConfig();
-                notificationManager.reload();
-                sender.sendMessage(ColorParser.fullFormat(
-                        configManager.getReloadMsg(),
+                config.load();
+                notificationManager.disable(true);
+                sender.sendMessage(ColorParser.setPapi(
+                        config.getReloadMsg(),
                         null
                 ));
             } else {
@@ -81,11 +83,11 @@ public class Commands implements CommandExecutor, TabCompleter {
         }
 
         if (args[0].equalsIgnoreCase("reload")) {
-            configManager.reloadConfig();
-            notificationManager.reload();
+            config.load();
+            notificationManager.disable(true);
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, 1.0f, 1.0f);
-            sender.sendMessage(ColorParser.fullFormat(
-                    configManager.getReloadMsg(),
+            sender.sendMessage(ColorParser.setPapi(
+                    config.getReloadMsg(),
                     player
             ));
             return true;
@@ -97,8 +99,8 @@ public class Commands implements CommandExecutor, TabCompleter {
 
     private boolean handlePlayerCommand(CommandSender sender) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(ColorParser.fullFormat(
-                    configManager.getPlayerOnlyMsg(),
+            sender.sendMessage(ColorParser.setPapi(
+                    config.getPlayerOnlyMsg(),
                     null
             ));
             return true;

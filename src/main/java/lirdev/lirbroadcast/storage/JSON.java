@@ -26,8 +26,9 @@ public class JSON {
     public void loadData() {
         try {
             if (!dataFile.exists()) {
-                dataFile.getParentFile().mkdirs();
-                saveData();
+                if (dataFile.getParentFile().mkdirs()) {
+                    saveData();
+                }
                 return;
             }
 
@@ -63,23 +64,9 @@ public class JSON {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T get(String key, Class<T> clazz, T defaultValue) {
-        Object value = dataCache.get(key);
-        if (value != null && clazz.isInstance(value)) {
-            return (T) value;
-        }
-        return defaultValue;
-    }
-
-    public <T> T get(String key, Class<T> clazz) {
-        return get(key, clazz, null);
-    }
-
-    @SuppressWarnings("unchecked")
     public <T> List<T> getList(String key, Class<T> clazz, List<T> defaultValue) {
         Object value = dataCache.get(key);
-        if (value instanceof List) {
-            List<?> list = (List<?>) value;
+        if (value instanceof List<?> list) {
             if (!list.isEmpty() && clazz.isInstance(list.get(0))) {
                 return (List<T>) list;
             }
@@ -94,8 +81,7 @@ public class JSON {
     @SuppressWarnings("unchecked")
     public <T> Set<T> getSet(String key, Class<T> clazz, Set<T> defaultValue) {
         Object value = dataCache.get(key);
-        if (value instanceof Set) {
-            Set<?> set = (Set<?>) value;
+        if (value instanceof Set<?> set) {
             if (!set.isEmpty() && clazz.isInstance(set.iterator().next())) {
                 return (Set<T>) set;
             }
@@ -103,87 +89,13 @@ public class JSON {
         return defaultValue;
     }
 
-    public <T> Set<T> getSet(String key, Class<T> clazz) {
-        return getSet(key, clazz, new HashSet<>());
-    }
-
     public void set(String key, Object value) {
         dataCache.put(key, value);
     }
 
-    public void setAndSave(String key, Object value) {
-        set(key, value);
-        saveData();
-    }
 
     public void setAndSaveAsync(String key, Object value) {
         set(key, value);
         saveDataAsync();
-    }
-
-    public void remove(String key) {
-        dataCache.remove(key);
-    }
-
-    public boolean contains(String key) {
-        return dataCache.containsKey(key);
-    }
-
-    public Set<String> getKeys() {
-        return dataCache.keySet();
-    }
-
-    public void clear() {
-        dataCache.clear();
-    }
-
-    public int size() {
-        return dataCache.size();
-    }
-
-    public Map<String, Object> getAll() {
-        return new HashMap<>(dataCache);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> T getNested(String path, Class<T> clazz, T defaultValue) {
-        String[] keys = path.split("\\.");
-        Object current = dataCache;
-
-        for (String key : keys) {
-            if (current instanceof Map) {
-                current = ((Map<String, Object>) current).get(key);
-            } else {
-                return defaultValue;
-            }
-            if (current == null) {
-                return defaultValue;
-            }
-        }
-
-        if (clazz.isInstance(current)) {
-            return (T) current;
-        }
-        return defaultValue;
-    }
-
-    @SuppressWarnings("unchecked")
-    public void setNested(String path, Object value) {
-        String[] keys = path.split("\\.");
-        Map<String, Object> current = dataCache;
-
-        for (int i = 0; i < keys.length - 1; i++) {
-            String key = keys[i];
-            Object next = current.get(key);
-
-            if (!(next instanceof Map)) {
-                next = new HashMap<String, Object>();
-                current.put(key, next);
-            }
-
-            current = (Map<String, Object>) next;
-        }
-
-        current.put(keys[keys.length - 1], value);
     }
 }

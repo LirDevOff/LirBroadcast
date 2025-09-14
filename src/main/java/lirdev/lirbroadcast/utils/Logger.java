@@ -1,42 +1,47 @@
 package lirdev.lirbroadcast.utils;
 
-import lirdev.lirbroadcast.managers.ConfigManager;
+import lirdev.lirbroadcast.configuration.Config;
+import lombok.experimental.UtilityClass;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+@UtilityClass
 public class Logger {
-    private static final java.util.logging.Logger logger = Bukkit.getLogger();
-    private static String PLUGIN_NAME;
-    private static ConfigManager configManager;
+    private String PLUGIN_NAME;
+    private Config config;
 
-    public static void init(ConfigManager configManager, String pluginName) {
-        Logger.configManager = configManager;
+    public void init(Config config, String pluginName) {
+        Logger.config = config;
         Logger.PLUGIN_NAME = pluginName;
     }
 
-    public static void error(String message) {
-        logger.warning(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f» &#4EF89BERROR: &f" + message));
+    public void error(String message) {
+        Bukkit.getConsoleSender().sendMessage(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f» &#4EF89BERROR: &f" + message));
     }
 
-    public static void critical(String message) {
-        logger.warning(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f» &#4EF89BCRITICAL: &f" + message));
+    public void critical(String message) {
+        Bukkit.getConsoleSender().sendMessage(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f» &#4EF89BCRITICAL: &f" + message));
     }
 
-    public static void warn(String message) {
-        logger.warning(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f» &#4EF89BWARN: &f" + message));
+    public void warn(String message) {
+        Bukkit.getConsoleSender().sendMessage(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f» &#4EF89BWARN: &f" + message));
     }
 
-    public static void info(String message) {
-        logger.info(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f» &#4EF89BINFO: &f" + message));
+    public void info(String message) {
+        Bukkit.getConsoleSender().sendMessage(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f» &#4EF89BINFO: &f" + message));
     }
 
-    public static void debug(String message) {
-        if (configManager != null && configManager.isDebug()) {
+    public void msg(String message) {
+        Bukkit.getConsoleSender().sendMessage(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f» " + message));
+    }
+
+    public void debug(String message) {
+        if (config != null && config.isDebug()) {
             String text = ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f» &#4EF89BDEBUG: &f" + message);
-            logger.info(text);
+            Bukkit.getConsoleSender().sendMessage((text));
 
             for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.hasPermission("lirbroadcast.admin")) {
+                if (player.hasPermission("lirbroadcast.admin") || player.isOp()) {
                     player.sendMessage(text);
                 }
             }

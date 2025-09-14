@@ -3,8 +3,9 @@ package lirdev.lirbroadcast;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import lirdev.lirbroadcast.managers.ConfigManager;
+import lirdev.lirbroadcast.configuration.Config;
 import lirdev.lirbroadcast.utils.ColorParser;
+import lirdev.lirbroadcast.utils.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -15,24 +16,22 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.logging.Logger;
 
 public class UpdateChecker implements Listener {
-    private final ConfigManager configManager;
+    private final Config config;
     private final JavaPlugin plugin;
     private final String currentVersion;
     private final String projectId;
     private final boolean checkUpdates;
     private final JsonParser jsonParser = new JsonParser();
     private String newVersion = "";
-    private final Logger log = Logger.getLogger("Minecraft");
 
-    public UpdateChecker(JavaPlugin plugin, String currentVersion, String projectId, ConfigManager configManager) {
+    public UpdateChecker(JavaPlugin plugin, String currentVersion, String projectId, Config config) {
         this.plugin = plugin;
         this.currentVersion = currentVersion;
         this.projectId = projectId;
-        this.configManager = configManager;
-        this.checkUpdates = configManager.isCheckupdate();
+        this.config = config;
+        this.checkUpdates = config.isCheckupdate();
 
         if (this.checkUpdates) {
             Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -76,7 +75,7 @@ public class UpdateChecker implements Listener {
 
     private void notifyUpdate() {
         String message = ColorParser.colorize("&#4EF89B[LirBroadcast] &fUpdate available: &#4EF89Bv" + newVersion + " &7(current: v" + currentVersion + ")");
-        log.info(message);
+        Logger.info(message);
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.isOp() || player.hasPermission("lirbroadcast.alert")) {
