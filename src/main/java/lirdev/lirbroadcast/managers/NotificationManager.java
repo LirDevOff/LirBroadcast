@@ -1,106 +1,66 @@
 package lirdev.lirbroadcast.managers;
 
 import lirdev.lirbroadcast.LirBroadcast;
+import lirdev.lirbroadcast.storage.JSON;
 import lirdev.lirbroadcast.utils.ColorParser;
 import lirdev.lirbroadcast.utils.Logger;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
-
-import java.io.*;
-import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class NotificationManager {
     private final LirBroadcast plugin;
     private final ConfigManager configManager;
+    private final JSON jsonData;
 
-    private final Set<UUID> disabledPlayers = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> disabledPlayers = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private volatile BukkitTask notificationTask;
     private final Random random = new Random();
-    private List<List<String>> messageCache;
-
+    private final List<String[]> formattedMessageCache = new ArrayList<>();
     private int currentMessageIndex = 0;
-
-    private final File disabledPlayersFile;
-    private final Gson gson;
 
     public NotificationManager(LirBroadcast plugin, ConfigManager configManager) {
         this.plugin = plugin;
         this.configManager = configManager;
-        this.disabledPlayersFile = new File(plugin.getDataFolder(), "disabled_players.json");
-        this.messageCache = new ArrayList<>();
-        this.gson = new GsonBuilder().setPrettyPrinting().create();
-
-        try {
-            initialize();
-        } catch (Exception e) {
-            Logger.debug("Failed to initialize NotificationManager: " + e.getMessage());
-        }
+        this.jsonData = new JSON(plugin, "disabled_players.json");
+        initialize();
     }
 
-    private void initialize() throws IOException {
-        if (!plugin.getDataFolder().exists() && !plugin.getDataFolder().mkdirs()) {}
-
+    private void initialize() {
+        plugin.getDataFolder().mkdirs();
         reloadMessageCache();
         loadDisabledPlayers();
-        startStrictIntervalTask();
+        startNotificationTask();
         startAutoSaveTask();
     }
 
     private void loadDisabledPlayers() {
-        try {
-            if (!disabledPlayersFile.exists()) {
-                saveDisabledPlayers();
-                return;
-            }
-
-            try (FileReader reader = new FileReader(disabledPlayersFile)) {
-                Type type = new TypeToken<Set<String>>(){}.getType();
-                Set<String> uuidStrings = gson.fromJson(reader, type);
-
-                if (uuidStrings != null) {
-                    for (String uuidString : uuidStrings) {
-                        try {
-                            disabledPlayers.add(UUID.fromString(uuidString));
-                        } catch (IllegalArgumentException e) {}
-                    }
-                }
-            }
-        } catch (Exception e) {
-            Logger.error("Failed to load disabled players: " + e.getMessage());
+        Set<String> disabledUuids = jsonData.getSet("disabled_players", String.class, new HashSet<>());
+        disabledPlayers.clear();
+        for (String uuidStr : disabledUuids) {
+            try {
+                disabledPlayers.add(UUID.fromString(uuidStr));
+            } catch (IllegalArgumentException e) {}
         }
     }
 
     private void saveDisabledPlayers() {
-        try {
-            if (!disabledPlayersFile.getParentFile().exists()) {
-                if (!disabledPlayersFile.getParentFile().mkdirs()) {
-                    return;
-                }
-            }
-
-            try (FileWriter writer = new FileWriter(disabledPlayersFile)) {
-                Set<String> uuidStrings = new HashSet<>();
-                for (UUID uuid : disabledPlayers) {
-                    uuidStrings.add(uuid.toString());
-                }
-                gson.toJson(uuidStrings, writer);
-            }
-        } catch (Exception e) {}
+        Set<String> uuidStrings = new HashSet<>();
+        for (UUID uuid : disabledPlayers) {
+            uuidStrings.add(uuid.toString());
+        }
+        jsonData.setAndSaveAsync("disabled_players", uuidStrings);
     }
 
     private void startAutoSaveTask() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::saveDisabledPlayers, 6000L, 6000L);
     }
 
-    private void startStrictIntervalTask() {
+    private void startNotificationTask() {
         if (notificationTask != null) {
             notificationTask.cancel();
         }
@@ -115,16 +75,13 @@ public class NotificationManager {
     }
 
     private void sendBroadcastMessage() {
-        if (messageCache.isEmpty()) {
-            reloadMessageCache();
-            if (messageCache.isEmpty()) {
-                Logger.warn("No messages available for broadcast");
-                return;
-            }
+        if (formattedMessageCache.isEmpty()) {
+            Logger.warn("No messages available for broadcast");
+            return;
         }
 
-        List<String> messageLines = getNextMessage();
-        if (messageLines.isEmpty()) {
+        String[] messageLines = getNextMessage();
+        if (messageLines.length == 0) {
             return;
         }
 
@@ -133,52 +90,51 @@ public class NotificationManager {
         float volume = configManager.getVolume();
         float pitch = configManager.getPitch();
 
-        String[] formattedMessages = new String[messageLines.size()];
-        for (int i = 0; i < messageLines.size(); i++) {
-            formattedMessages[i] = ColorParser.fullFormat(messageLines.get(i), null);
-        }
-
         Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
 
         for (Player player : onlinePlayers) {
             if (disabledPlayers.contains(player.getUniqueId())) continue;
-
-            for (String message : formattedMessages) {
-                player.sendMessage(message);
-            }
-
+            player.sendMessage(messageLines);
             if (soundEnabled) {
                 player.playSound(player.getLocation(), sound, volume, pitch);
             }
         }
     }
 
-    private synchronized List<String> getNextMessage() {
-        if (messageCache.isEmpty()) {
-            return Collections.emptyList();
+    private synchronized String[] getNextMessage() {
+        if (formattedMessageCache.isEmpty()) {
+            return new String[0];
         }
 
         if (configManager.isRandom()) {
-            return messageCache.get(random.nextInt(messageCache.size()));
+            return formattedMessageCache.get(random.nextInt(formattedMessageCache.size()));
         } else {
-            List<String> message = messageCache.get(currentMessageIndex);
-            currentMessageIndex = (currentMessageIndex + 1) % messageCache.size();
+            String[] message = formattedMessageCache.get(currentMessageIndex);
+            currentMessageIndex = (currentMessageIndex + 1) % formattedMessageCache.size();
             return message;
         }
     }
 
     private synchronized void reloadMessageCache() {
         try {
-            Collection<List<String>> messages = configManager.getMessages().values();
-            messageCache = new ArrayList<>(messages);
+            formattedMessageCache.clear();
+            for (List<String> messageLines : configManager.getMessages().values()) {
+                String[] formattedLines = new String[messageLines.size()];
+                for (int i = 0; i < messageLines.size(); i++) {
+                    formattedLines[i] = ColorParser.fullFormat(messageLines.get(i), null);
+                }
+                formattedMessageCache.add(formattedLines);
+            }
             currentMessageIndex = 0;
-            Logger.debug("Message cache reloaded. Loaded " + messages.size() + " messages");
-        } catch (Exception e) {}
+            Logger.debug("Message cache reloaded. Loaded " + formattedMessageCache.size() + " messages");
+        } catch (Exception e) {
+            Logger.error("Failed to reload message cache: " + e.getMessage());
+        }
     }
 
     public void reload() {
         reloadMessageCache();
-        startStrictIntervalTask();
+        startNotificationTask();
     }
 
     public void toggleNotifications(Player player) {
@@ -198,10 +154,9 @@ public class NotificationManager {
     public void disable() {
         if (notificationTask != null) {
             notificationTask.cancel();
-            notificationTask = null;
         }
         saveDisabledPlayers();
         disabledPlayers.clear();
-        messageCache.clear();
+        formattedMessageCache.clear();
     }
 }

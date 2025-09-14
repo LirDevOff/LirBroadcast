@@ -2,12 +2,10 @@ name: LirBroadcast
 version: '${project.version}'
 main: lirdev.lirbroadcast.LirBroadcast
 api-version: '1.16'
-author: LirDev
-softdepend:
-  - PlaceholderAPI
-loadbefore:
-  - PlaceholderAPI
+author: [LirDev]
+softdepend: [PlaceholderAPI]
+loadbefore: [PlaceholderAPI]
 commands:
   lirbroadcast:
     permission: lirbroadcast.admin
-  notification:
+  notification: {}
