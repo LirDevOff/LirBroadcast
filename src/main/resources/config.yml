@@ -1,0 +1,25 @@
+check-update: true
+
+interval: 120
+random: true
+
+sound: "BLOCK_NOTE_BLOCK_PLING" # "" for disable sounds
+volume: 1.0
+pitch: 1.0
+
+messages:
+  toggle-on: "Notifications are enabled!"
+  toggle-off: "Notifications are turned off!"
+  no-permission: "You do not have permission for this command!"
+  reload: "Config has been reloaded!"
+  player-only: "This command is for players only!"  
+
+  example: 
+    - "[message] &f"
+    - "[message] test"
+    - "[title] 123"
+    - "[subtitle] sjdfh"
+    - "[bossbar] jshdfkhjsdf"
+    - "[actionbar] sjdfh"
+    - "[message] test"
+    - "[message] &f"
