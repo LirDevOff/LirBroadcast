@@ -1,0 +1,19 @@
+main: itz.lirdev.LirBroadcast
+version: '2.0'
+name: LirBroadcast
+author: LirDev
+api-version: 1.16
+commands: 
+  lirbroadcast:
+    permission: lirbroadcast.admin
+    aliases:
+      - lbc
+  notification: 
+    aliases: 
+      - notify
+
+permissions: 
+  lirbroadcast.admin:
+    default: op
+  lirbroadcast.alert:
+    default: op

@@ -1,0 +1,48 @@
+# Enables automatic update checking for the plugin.
+check-update: true
+
+# Interval (in seconds) between notification broadcasts.
+interval: 60
+
+# Randomizes notification timing to prevent simultaneous triggers.
+random: true
+
+messages:
+  prefix: "&#4ef89b[&lʟɪʀʙʀᴏᴀᴅᴄᴀꜱᴛ&#4ef89b] &f→&r"
+
+  toggle-on: "{prefix} &#4ef89b✔ &fɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴꜱ ʜᴀᴠᴇ ʙᴇᴇɴ &#4ef89bᴇɴᴀʙʟᴇᴅ!"
+  toggle-off: "{prefix} &#FF4141✘ &fɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴꜱ ʜᴀᴠᴇ ʙᴇᴇɴ &#FF4141ᴅɪꜱᴀʙʟᴇᴅ!"
+  no-permission: "{prefix} &#FF4141✘ ʏᴏᴜ ᴅᴏɴ'ᴛ ʜᴀᴠᴇ ᴘᴇʀᴍɪꜱꜱɪᴏɴ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ᴄᴏᴍᴍᴀɴᴅ!"
+  reload: "{prefix} &#4ef89b✔ &fᴄᴏɴꜰɪɢᴜʀᴀᴛɪᴏɴ ʀᴇʟᴏᴀᴅᴇᴅ ɪɴ &#4ef89b%ms%ᴍꜱ!"
+  player-only: "{prefix} &#FF4141✘ ᴛʜɪꜱ ᴄᴏᴍᴍᴀɴᴅ ᴄᴀɴ ᴏɴʟʏ ʙᴇ ᴜꜱᴇᴅ ʙʏ ᴘʟᴀʏᴇʀꜱ!"
+  announce-sent: "{prefix} &#4EF89B✔ ᴀɴɴᴏᴜɴᴄᴇᴍᴇɴᴛ ꜱᴇɴᴛ!"
+
+  notifications:
+    # ACTIONS:
+    # [message] {text} - Send chat message
+    # [actionbar] {text} - Display in action bar
+
+    # [title] {title}|{subtitle}|{fadeIn}|{stay}|{fadeOut} - Send title with optional subtitle, times in ticks
+    # - "[title] &fTitle|&7Subtitle|10|70|20"
+
+    # [bossbar] {text} - Display as boss bar
+    # [sound] {SOUND_NAME} {VOLUME} {PITCH} - Play sound
+    # [wait] {seconds} - Wait before next action
+
+    example:
+      - "[message]  "
+      - "[message]  &#4ef89b[&lʟɪʀʙʀᴏᴀᴅᴄᴀꜱᴛ&#4ef89b] &7(/ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴ)"
+      - "[message]  &#4ef89b&n▌&r ᴅᴏᴡɴʟᴏᴀᴅ ᴛʜᴇ ᴘʟᴜɢɪɴ -"
+      - "[message]  &#4ef89b▌&r &#4ef89bhttps://modrinth.com/plugin/lirbroadcast"
+      - "[message]  "
+      - "[actionbar] &#4ef89b▶&f ɴᴏᴡ ᴛʜᴇʀᴇ ᴀʀᴇ &#4ef89bᴀᴄᴛɪᴏɴ ʙᴀʀꜱ&f."
+      - "[sound] BLOCK_NOTE_BLOCK_PLING 1.0 1.0"
+    example2:
+      - "[message]  "
+      - "[message]  &#4ef89b[&lʟɪʀʙʀᴏᴀᴅᴄᴀꜱᴛ&#4ef89b] &7(/ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴ)"
+      - "[message]  &#4ef89b&n▌&r &#4ef89bᴘʟᴜɢɪɴ ꜱᴜᴘᴘᴏʀᴛꜱ ʜᴇx ᴄᴏʟᴏʀꜱ &f& &#4ef89bᴘʟᴀᴄᴇʜᴏʟᴅᴇʀꜱ."
+      - "[message]  &#4ef89b&n▌&r &fʏᴏᴜʀ ɴᴀᴍᴇ: &#4ef89b%player_name%"
+      - "[message]  &#4ef89b▌&r &fꜱᴇʀᴠᴇʀ ᴏɴʟɪɴᴇ: &#4ef89b%server_online%"
+      - "[message]  "
+      - "[title] &#4ef89bᴛɪᴛʟᴇꜱ&f ᴀʀᴇ ɴᴏᴡ ᴀᴠᴀɪʟᴀʙʟᴇ."
+      - "[sound] BLOCK_NOTE_BLOCK_PLING 1.0 1.0"
