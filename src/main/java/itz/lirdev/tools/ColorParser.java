@@ -1,19 +1,24 @@
 package itz.lirdev.tools;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.entity.Player;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
+
+import itz.lirdev.configuration.Config;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public class ColorParser {
 
     private static final Pattern HEX_PATTERN = Pattern.compile("&#([A-Fa-f0-9]{6})");
+    private static Config config;
+
+    public static void setConfig(Config cfg) {
+        config = cfg;
+    }
 
     public static String setPapi(String text, Player player) {
         if (text == null) {
@@ -38,6 +43,10 @@ public class ColorParser {
     public static String colorize(String text) {
         if (text == null) {
             return null;
+        }
+
+        if (config != null) {
+            text = text.replace("{prefix}", config.getPrefix());
         }
 
         Matcher matcher = HEX_PATTERN.matcher(text);

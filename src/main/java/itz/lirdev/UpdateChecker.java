@@ -1,8 +1,8 @@
 package itz.lirdev;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -11,15 +11,16 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 
 import itz.lirdev.configuration.Config;
 import itz.lirdev.tools.ColorParser;
 import itz.lirdev.tools.Logger;
 
 public class UpdateChecker implements Listener {
+
     private final Config config;
     private final JavaPlugin plugin;
     private final String currentVersion;
@@ -33,7 +34,7 @@ public class UpdateChecker implements Listener {
         this.currentVersion = currentVersion;
         this.projectId = projectId;
         this.config = config;
-        this.checkUpdates = config.isCheckupdate();
+        this.checkUpdates = config.isCheckUpdate();
 
         if (this.checkUpdates) {
             Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -76,8 +77,8 @@ public class UpdateChecker implements Listener {
     }
 
     private void notifyUpdate() {
-        String message = ColorParser.colorize("&#4EF89B[LirBroadcast] &fUpdate available: &#4EF89Bv" + newVersion + " &7(current: v" + currentVersion + ")");
-        Logger.info(message);
+        String message = ColorParser.colorize("&#4ef89b[&lʟɪʀʙʀᴏᴀᴅᴄᴀꜱᴛ&#4ef89b] &f→&r &fUpdate available: &#4EF89Bv" + newVersion + " &7(current: v" + currentVersion + ")");
+        Logger.msg(message);
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.isOp() || player.hasPermission("lirbroadcast.alert")) {
@@ -88,11 +89,13 @@ public class UpdateChecker implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if (!checkUpdates || newVersion.isEmpty()) return;
+        if (!checkUpdates || newVersion.isEmpty()) {
+            return;
+        }
 
         Player player = event.getPlayer();
         if (player.isOp() || player.hasPermission("lirbroadcast.alert")) {
-            String message = ColorParser.colorize("&#4EF89B[LirBroadcast] &fUpdate available: &#4EF89Bv" + newVersion + " &7(current: v" + currentVersion + ")");
+            String message = ColorParser.colorize("&#4ef89b[&lʟɪʀʙʀᴏᴀᴅᴄᴀꜱᴛ&#4ef89b] &f→&r &fUpdate available: &#4EF89Bv" + newVersion + " &7(current: v" + currentVersion + ")");
             Bukkit.getScheduler().runTaskLater(plugin, () -> player.sendMessage(message), 20L);
         }
     }
