@@ -1,19 +1,21 @@
 main: itz.lirdev.LirBroadcast
-version: '${project.version}'
+version: "${project.version}"
 name: LirBroadcast
 author: LirDev
 api-version: 1.16
-commands: 
+commands:
   lirbroadcast:
     permission: lirbroadcast.admin
     aliases:
       - lbc
-  notification: 
-    aliases: 
+  notification:
+    aliases:
       - notify
 
-permissions: 
+permissions:
   lirbroadcast.admin:
     default: op
   lirbroadcast.alert:
     default: op
+
+folia-supported: true

@@ -4,20 +4,34 @@ import org.bukkit.entity.Player;
 
 import itz.lirdev.actions.Action;
 import itz.lirdev.tools.ColorParser;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.kyori.adventure.text.Component;
 
 public class ActionBarAction implements Action {
 
-    private final String message;
+    private final String raw;
+    private final boolean hasPapi;
+    private volatile Component cachedComponent;
 
-    public ActionBarAction(String message) {
-        this.message = ColorParser.colorize(message);
+    public ActionBarAction(String content) {
+        this.raw = content;
+        this.hasPapi = content.contains("%");
     }
 
     @Override
     public void execute(Player player) {
-        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+        player.sendActionBar(component(player));
     }
 
+    private Component component(Player player) {
+        if (hasPapi) {
+            return ColorParser.toComponent(ColorParser.setPapi(raw, player));
+        }
+
+        Component local = cachedComponent;
+        if (local == null) {
+            local = ColorParser.toComponent(raw);
+            cachedComponent = local;
+        }
+        return local;
+    }
 }

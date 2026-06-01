@@ -27,7 +27,12 @@ public class Announce {
         }
 
         String messageId = args[1];
-        broadcastManager.broadcastMessageById(messageId);
-        sender.sendMessage(ColorParser.colorize(config.getAnnounceSentMessage()));
+        boolean found = broadcastManager.broadcastMessageById(messageId);
+        if (found) {
+            sender.sendMessage(ColorParser.colorize(config.getAnnounceSentMessage()));
+        } else {
+            sender.sendMessage(ColorParser.colorize(
+                    config.getAnnounceNotFoundMessage().replace("{id}", messageId)));
+        }
     }
 }

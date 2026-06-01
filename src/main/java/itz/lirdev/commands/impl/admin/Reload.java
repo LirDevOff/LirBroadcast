@@ -1,6 +1,7 @@
 package itz.lirdev.commands.impl.admin;
 
 import org.bukkit.command.CommandSender;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import itz.lirdev.configuration.Config;
 import itz.lirdev.managers.BroadcastManager;
@@ -8,32 +9,26 @@ import itz.lirdev.tools.ColorParser;
 
 public class Reload {
 
+    private final JavaPlugin plugin;
     private final Config config;
     private final BroadcastManager broadcastManager;
 
-    public Reload(Config config, BroadcastManager broadcastManager) {
+    public Reload(JavaPlugin plugin, Config config, BroadcastManager broadcastManager) {
+        this.plugin = plugin;
         this.config = config;
         this.broadcastManager = broadcastManager;
     }
 
     public void reloadConfig(CommandSender sender) {
-        if (!sender.hasPermission("lirbroadcast.admin")) {
-            sender.sendMessage(ColorParser.colorize(config.getNoPermissionMessage()));
-            return;
-        }
-
-        long startTime = System.currentTimeMillis();
-
+        long start = System.nanoTime();
         config.load();
-        broadcastManager.reloadBroadcasts();
 
-        long endTime = System.currentTimeMillis();
-        long elapsedMs = endTime - startTime;
+        broadcastManager.loadBroadcasts();
+        broadcastManager.startBroadcasting();
 
-        String message = config.getReloadMessage().replace("%ms%", String.valueOf(elapsedMs));
+        String elapsed = String.format("%.2f", (System.nanoTime() - start) / 1_000_000.0);
+        String message = config.getReloadMessage().replace("%ms%", elapsed);
+
         sender.sendMessage(ColorParser.colorize(message));
-
-        broadcastManager.broadcastTestMessage();
     }
-
 }

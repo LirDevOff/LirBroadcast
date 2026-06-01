@@ -5,16 +5,19 @@ import org.bukkit.entity.Player;
 
 import itz.lirdev.configuration.Config;
 import itz.lirdev.managers.BroadcastManager;
+import itz.lirdev.managers.DatabaseManager;
 import itz.lirdev.tools.ColorParser;
 
 public class Notification {
 
     private final Config config;
     private final BroadcastManager broadcastManager;
+    private final DatabaseManager databaseManager;
 
-    public Notification(Config config, BroadcastManager broadcastManager) {
+    public Notification(Config config, BroadcastManager broadcastManager, DatabaseManager databaseManager) {
         this.config = config;
         this.broadcastManager = broadcastManager;
+        this.databaseManager = databaseManager;
     }
 
     public boolean execute(CommandSender sender) {
@@ -24,14 +27,13 @@ public class Notification {
         }
 
         Player player = (Player) sender;
-        boolean isCurrentlyDisabled = broadcastManager.isNotificationDisabled(player.getUniqueId());
+        boolean isCurrentlyDisabled = databaseManager.isNotificationDisabled(player.getUniqueId());
         boolean shouldEnable = isCurrentlyDisabled;
-        broadcastManager.toggleNotifications(player.getUniqueId(), shouldEnable);
+        broadcastManager.toggle(player.getUniqueId(), shouldEnable);
 
         String message = shouldEnable ? config.getToggleOnMessage() : config.getToggleOffMessage();
         sender.sendMessage(ColorParser.colorize(message));
 
         return true;
     }
-
 }

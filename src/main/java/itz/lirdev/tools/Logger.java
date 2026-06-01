@@ -10,25 +10,38 @@ public class Logger {
     private static String PLUGIN_NAME;
     private static Config config;
 
-    public static void init(Config config, String pluginName) {
-        Logger.config = config;
-        Logger.PLUGIN_NAME = pluginName;
+    private static String PREFIX_ERROR;
+    private static String PREFIX_CRITICAL;
+    private static String PREFIX_WARN;
+    private static String PREFIX_INFO;
+    private static String PREFIX_DEBUG;
+
+    public static void init(Config cfg, String pluginName) {
+        config = cfg;
+        PLUGIN_NAME = pluginName;
+
+        String base = "&#4EF89B[&l" + pluginName + "&#4EF89B] &f→&r ";
+        PREFIX_ERROR = ColorParser.colorize(base + "ERROR: &f");
+        PREFIX_CRITICAL = ColorParser.colorize(base + "CRITICAL: &f");
+        PREFIX_WARN = ColorParser.colorize(base + "WARN: &f");
+        PREFIX_INFO = ColorParser.colorize(base + "INFO: &f");
+        PREFIX_DEBUG = ColorParser.colorize(base + "DEBUG: &f");
     }
 
     public static void error(String message) {
-        Bukkit.getConsoleSender().sendMessage(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f→&r &#4EF89BERROR: &f" + message));
+        Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + message);
     }
 
     public static void critical(String message) {
-        Bukkit.getConsoleSender().sendMessage(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f→&r &#4EF89BCRITICAL: &f" + message));
+        Bukkit.getConsoleSender().sendMessage(PREFIX_CRITICAL + message);
     }
 
     public static void warn(String message) {
-        Bukkit.getConsoleSender().sendMessage(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f→&r &#4EF89BWARN: &f" + message));
+        Bukkit.getConsoleSender().sendMessage(PREFIX_WARN + message);
     }
 
     public static void info(String message) {
-        Bukkit.getConsoleSender().sendMessage(ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f→&r &#4EF89BINFO: &f" + message));
+        Bukkit.getConsoleSender().sendMessage(PREFIX_INFO + message);
     }
 
     public static void msg(String message) {
@@ -36,14 +49,16 @@ public class Logger {
     }
 
     public static void debug(String message) {
-        if (config != null && config.isDebug()) {
-            String text = ColorParser.colorize("&#4EF89B[&l" + PLUGIN_NAME + "&#4EF89B] &f→&r &#4EF89BDEBUG: &f" + message);
-            Bukkit.getConsoleSender().sendMessage((text));
+        if (config == null || !config.isDebug()) {
+            return;
+        }
 
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.hasPermission("lirbroadcast.admin") || player.isOp()) {
-                    player.sendMessage(text);
-                }
+        String text = PREFIX_DEBUG + message;
+        Bukkit.getConsoleSender().sendMessage(text);
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.hasPermission("lirbroadcast.admin") || player.isOp()) {
+                player.sendMessage(text);
             }
         }
     }

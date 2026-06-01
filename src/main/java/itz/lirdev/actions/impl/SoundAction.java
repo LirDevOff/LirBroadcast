@@ -4,6 +4,7 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
 import itz.lirdev.actions.Action;
+import itz.lirdev.tools.Logger;
 
 public class SoundAction implements Action {
 
@@ -12,22 +13,22 @@ public class SoundAction implements Action {
     private final float pitch;
 
     public SoundAction(String soundName, float volume, float pitch) {
+        Sound parsed = null;
         try {
-            this.sound = Sound.valueOf(soundName.toUpperCase());
+            parsed = Sound.valueOf(soundName.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unknown sound: " + soundName);
+            Logger.warn("Unknown sound: " + soundName);
         }
+        this.sound = parsed;
         this.volume = volume;
         this.pitch = pitch;
     }
 
-    public SoundAction(String soundName) {
-        this(soundName, 1.0f, 1.0f);
-    }
-
     @Override
     public void execute(Player player) {
+        if (sound == null) {
+            return;
+        }
         player.playSound(player.getLocation(), sound, volume, pitch);
     }
-
 }

@@ -3,17 +3,22 @@ package itz.lirdev.actions;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import itz.lirdev.actions.impl.ActionBarAction;
 import itz.lirdev.actions.impl.BossBarAction;
+import itz.lirdev.actions.impl.ButtonAction;
+import itz.lirdev.actions.impl.ButtonsRowAction;
+import itz.lirdev.actions.impl.ConsoleAction;
+import itz.lirdev.actions.impl.EffectAction;
 import itz.lirdev.actions.impl.MessageAction;
+import itz.lirdev.actions.impl.PlayerAction;
 import itz.lirdev.actions.impl.SoundAction;
 import itz.lirdev.actions.impl.TitleAction;
 import itz.lirdev.actions.impl.WaitAction;
 import itz.lirdev.tools.Logger;
+import itz.lirdev.tools.SchedulerUtil;
 
 public class ActionHandler {
 
@@ -25,102 +30,109 @@ public class ActionHandler {
 
     public List<Action> parseActions(List<String> actionLines) {
         List<Action> actions = new ArrayList<>();
+        if (actionLines == null) {
+            return actions;
+        }
 
         for (String line : actionLines) {
-            line = line.trim();
-            if (line.isEmpty()) {
+            if (line == null || line.trim().isEmpty()) {
                 continue;
             }
-
             try {
                 Action action = parseAction(line);
                 if (action != null) {
                     actions.add(action);
+                } else {
+                    Logger.error("Unknown action tag: " + line.trim());
                 }
             } catch (Exception e) {
-                Logger.error("Failed to parse action: " + line + " - " + e.getMessage());
+                Logger.error("Failed to parse action: " + line.trim() + " - " + e.getMessage());
             }
         }
-
         return actions;
     }
 
     private Action parseAction(String line) {
-        if (line.startsWith("[message]")) {
-            String content = line.substring("[message]".length());
-            if (content.startsWith(" ") && content.length() > 1) {
-                content = content.substring(1);
-            }
-            return new MessageAction(content);
+        ActionType type = ActionType.detect(line);
+        if (type == null) {
+            return null;
         }
 
-        if (line.startsWith("[title]")) {
-            String content = line.substring("[title]".length()).trim();
-            return new TitleAction(content);
+        String content = type.extractContent(line);
+        if (!content.isEmpty() && content.charAt(0) == ' ') {
+            content = content.substring(1);
         }
 
-        if (line.startsWith("[bossbar]")) {
-            String content = line.substring("[bossbar]".length()).trim();
-            return new BossBarAction(content);
-        }
-
-        if (line.startsWith("[sound]")) {
-            String content = line.substring("[sound]".length()).trim();
-            String[] parts = content.split("\\s+");
-            if (parts.length >= 1) {
-                float volume = parts.length > 1 ? safeParse(parts[1], 1.0f) : 1.0f;
-                float pitch = parts.length > 2 ? safeParse(parts[2], 1.0f) : 1.0f;
-                return new SoundAction(parts[0], volume, pitch);
-            }
-            return new SoundAction(content);
-        }
-
-        if (line.startsWith("[wait]")) {
-            String content = line.substring("[wait]".length()).trim();
-            double seconds = Double.parseDouble(content);
-            return new WaitAction(seconds);
-        }
-
-        if (line.startsWith("[actionbar]")) {
-            String content = line.substring("[actionbar]".length()).trim();
-            return new ActionBarAction(content);
-        }
-
-        return null;
+        return switch (type) {
+            case MESSAGE ->
+                new MessageAction(content);
+            case ACTIONBAR ->
+                new ActionBarAction(content);
+            case TITLE ->
+                new TitleAction(content);
+            case BOSSBAR ->
+                new BossBarAction(content, plugin);
+            case SOUND ->
+                parseSoundAction(content);
+            case WAIT ->
+                new WaitAction(content);
+            case EFFECT ->
+                new EffectAction(content);
+            case CONSOLE ->
+                new ConsoleAction(content);
+            case PLAYER ->
+                new PlayerAction(content);
+            case BUTTON ->
+                new ButtonAction(ButtonAction.Mode.RUN_COMMAND, content);
+            case BUTTON_URL ->
+                new ButtonAction(ButtonAction.Mode.OPEN_URL, content);
+            case BUTTON_SUGGEST ->
+                new ButtonAction(ButtonAction.Mode.SUGGEST_COMMAND, content);
+            case BUTTONS ->
+                new ButtonsRowAction(content);
+        };
     }
 
-    private float safeParse(String value, float defaultValue) {
+    private Action parseSoundAction(String content) {
+        String[] parts = content.split("\\s+");
+        float volume = safeParse(parts.length > 1 ? parts[1] : "", 1.0f);
+        float pitch = safeParse(parts.length > 2 ? parts[2] : "", 1.0f);
+        return new SoundAction(parts[0], volume, pitch);
+    }
+
+    private float safeParse(String value, float def) {
         try {
             return Float.parseFloat(value);
         } catch (NumberFormatException e) {
-            return defaultValue;
+            return def;
         }
     }
 
     public void executeActions(Player player, List<Action> actions) {
-        if (actions.isEmpty()) {
-            return;
-        }
-
-        executeActionsAsync(player, actions, 0);
+        executeFrom(player, actions, 0);
     }
 
-    private void executeActionsAsync(Player player, List<Action> actions, int index) {
-        if (index >= actions.size()) {
-            return;
-        }
+    public void executeFrom(Player player, List<Action> actions, int startIndex) {
+        int size = actions.size();
 
-        Action action = actions.get(index);
+        for (int i = startIndex; i < size; i++) {
+            if (!player.isOnline()) {
+                return;
+            }
 
-        if (action instanceof WaitAction) {
-            WaitAction wait = (WaitAction) action;
-            Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
-                executeActionsAsync(player, actions, index + 1);
-            }, wait.getTicks());
-        } else {
+            Action action = actions.get(i);
+
+            if (action instanceof WaitAction wait) {
+                final int nextIndex = i + 1;
+                SchedulerUtil.runTaskLaterForPlayer(
+                        plugin, player,
+                        () -> executeFrom(player, actions, nextIndex),
+                        wait.getTicks()
+                );
+                return;
+            }
+
             action.execute(player);
-            executeActionsAsync(player, actions, index + 1);
         }
     }
-
 }
