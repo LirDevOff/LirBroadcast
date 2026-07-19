@@ -13,17 +13,18 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import itz.lirdev.tools.Logger;
 
 public class DatabaseManager {
 
-    private Connection connection;
+    private volatile Connection connection;
     private final ConcurrentHashMap<UUID, Boolean> notificationsCache = new ConcurrentHashMap<>();
 
-    private final ExecutorService dbExecutor
-            = Executors.newSingleThreadExecutor(r -> new Thread(r, "LirBroadcast-SQLite"));
+    private final ExecutorService dbExecutor = Executors
+            .newSingleThreadExecutor(r -> new Thread(r, "LirBroadcast-SQLite"));
 
     public DatabaseManager(File dataFolder) {
         try {
@@ -31,14 +32,14 @@ public class DatabaseManager {
 
             File dbFile = new File(dataFolder, "disabled_players.db");
             connection = DriverManager.getConnection(
-                    "jdbc:sqlite:" + dbFile.getAbsolutePath()
-            );
+                    "jdbc:sqlite:" + dbFile.getAbsolutePath());
 
             try (Statement s = connection.createStatement()) {
-                s.execute("PRAGMA journal_mode = DELETE");
+                s.execute("PRAGMA journal_mode = WAL");
                 s.execute("PRAGMA synchronous = NORMAL");
                 s.execute("PRAGMA cache_size = 2000");
                 s.execute("PRAGMA temp_store = MEMORY");
+                s.execute("PRAGMA busy_timeout = 5000");
             }
 
             createTables();
@@ -71,8 +72,9 @@ public class DatabaseManager {
 
         try {
             dbExecutor.submit(() -> {
-                try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(
-                        "SELECT uuid, notifications_disabled FROM players")) {
+                try (Statement stmt = connection.createStatement();
+                        ResultSet rs = stmt.executeQuery(
+                                "SELECT uuid, notifications_disabled FROM players")) {
                     while (rs.next()) {
                         UUID uuid = UUID.fromString(rs.getString("uuid"));
                         boolean isDis = rs.getInt("notifications_disabled") == 1;
@@ -121,16 +123,20 @@ public class DatabaseManager {
             return;
         }
 
-        dbExecutor.execute(() -> {
-            String sql = "INSERT OR REPLACE INTO players (uuid, notifications_disabled) VALUES (?, ?)";
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                ps.setString(1, uuid.toString());
-                ps.setInt(2, disabled ? 1 : 0);
-                ps.executeUpdate();
-            } catch (SQLException e) {
-                Logger.error("Failed to save notification status: " + e.getMessage());
-            }
-        });
+        try {
+            dbExecutor.execute(() -> {
+                String sql = "INSERT OR REPLACE INTO players (uuid, notifications_disabled) VALUES (?, ?)";
+                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                    ps.setString(1, uuid.toString());
+                    ps.setInt(2, disabled ? 1 : 0);
+                    ps.executeUpdate();
+                } catch (SQLException e) {
+                    Logger.error("Failed to save notification status: " + e.getMessage());
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            Logger.debug("Skipped saving " + uuid + ", database executor is shutting down");
+        }
     }
 
     public void close() {
@@ -145,6 +151,8 @@ public class DatabaseManager {
             Logger.info("Database connection closed");
         } catch (Exception e) {
             Logger.error("Failed to close database: " + e.getMessage());
+        } finally {
+            connection = null;
         }
     }
 }

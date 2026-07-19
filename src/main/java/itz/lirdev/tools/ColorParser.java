@@ -2,6 +2,8 @@ package itz.lirdev.tools;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,25 +34,33 @@ public class ColorParser {
     }
 
     private static final int HEX_CACHE_MAX = 512;
-    private static final Map<String, String> HEX_CACHE = new java.util.LinkedHashMap<>(64, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
-            return size() > HEX_CACHE_MAX;
-        }
-    };
+    private static final int TEXT_CACHE_MAX = 1024;
+    private static final Map<String, String> HEX_CACHE = boundedLruCache(HEX_CACHE_MAX);
+    private static final Map<String, String> COLORIZE_CACHE = boundedLruCache(TEXT_CACHE_MAX);
+    private static final Map<String, Component> COMPONENT_CACHE = boundedLruCache(TEXT_CACHE_MAX);
 
     private static final String[] MM_TAGS = {
-        "</", "<#", "<gradient", "<rainbow",
-        "<bold>", "<italic>", "<underlined>", "<strikethrough>", "<obfuscated>", "<reset>",
-        "<red>", "<green>", "<blue>", "<yellow>", "<white>", "<black>",
-        "<gray>", "<grey>", "<gold>", "<aqua>",
-        "<dark_", "<light_",
-        "<hover", "<click", "<insertion", "<font", "<newline>",
-        "<lang", "<key", "<score", "<selector", "<transition"
+            "</", "<#", "<gradient", "<rainbow",
+            "<bold>", "<italic>", "<underlined>", "<strikethrough>", "<obfuscated>", "<reset>",
+            "<red>", "<green>", "<blue>", "<yellow>", "<white>", "<black>",
+            "<gray>", "<grey>", "<gold>", "<aqua>",
+            "<dark_", "<light_",
+            "<", "<click", "<insertion", "<font", "<newline>",
+            "<lang", "<key", "<score", "<selector", "<transition"
     };
 
     private static Config config;
     private static boolean papiEnabled;
+
+    private static <V> Map<String, V> boundedLruCache(int maxSize) {
+        Map<String, V> map = new LinkedHashMap<>(64, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, V> eldest) {
+                return size() > maxSize;
+            }
+        };
+        return Collections.synchronizedMap(map);
+    }
 
     public static void setConfig(Config cfg) {
         config = cfg;
@@ -64,8 +74,17 @@ public class ColorParser {
         return MINI_MESSAGE_ENABLED;
     }
 
+    public static void clearCache() {
+        COLORIZE_CACHE.clear();
+        COMPONENT_CACHE.clear();
+    }
+
     public static String setPapi(String text, Player player) {
         if (!papiEnabled || text == null || player == null) {
+            return text;
+        }
+
+        if (text.indexOf('%') == -1) {
             return text;
         }
         return PlaceholderAPI.setPlaceholders(player, text);
@@ -98,13 +117,21 @@ public class ColorParser {
             return "";
         }
 
-        text = applyPrefix(text);
-
-        if (MINI_MESSAGE_ENABLED && containsMiniMessageTag(text)) {
-            return LEGACY.serialize(MINI_MESSAGE.deserialize(convertLegacyToMM(text)));
+        String cached = COLORIZE_CACHE.get(text);
+        if (cached != null) {
+            return cached;
         }
 
-        return legacyColorize(text);
+        String prefixed = applyPrefix(text);
+        String result;
+        if (MINI_MESSAGE_ENABLED && containsMiniMessageTag(prefixed)) {
+            result = LEGACY.serialize(MINI_MESSAGE.deserialize(convertLegacyToMM(prefixed)));
+        } else {
+            result = legacyColorize(prefixed);
+        }
+
+        COLORIZE_CACHE.put(text, result);
+        return result;
     }
 
     public static Component toComponent(String text) {
@@ -112,13 +139,21 @@ public class ColorParser {
             return Component.empty();
         }
 
-        text = applyPrefix(text);
-
-        if (MINI_MESSAGE_ENABLED && containsMiniMessageTag(text)) {
-            return MINI_MESSAGE.deserialize(convertLegacyToMM(text));
+        Component cached = COMPONENT_CACHE.get(text);
+        if (cached != null) {
+            return cached;
         }
 
-        return LEGACY.deserialize(legacyColorize(text));
+        String prefixed = applyPrefix(text);
+        Component result;
+        if (MINI_MESSAGE_ENABLED && containsMiniMessageTag(prefixed)) {
+            result = MINI_MESSAGE.deserialize(convertLegacyToMM(prefixed));
+        } else {
+            result = LEGACY.deserialize(legacyColorize(prefixed));
+        }
+
+        COMPONENT_CACHE.put(text, result);
+        return result;
     }
 
     public static Component toComponent(String text, Player player) {

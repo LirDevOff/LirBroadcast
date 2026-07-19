@@ -1,5 +1,5 @@
 main: itz.lirdev.LirBroadcast
-version: "2.1"
+version: "2.1.1"
 name: LirBroadcast
 author: LirDev
 api-version: 1.16
